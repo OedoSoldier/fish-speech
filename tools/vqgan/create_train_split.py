@@ -17,18 +17,18 @@ from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files, load_filelist
 @click.option("--filelist", default=None, type=Path)
 def main(root, val_ratio, val_count, filelist):
     if filelist:
-        files = [i[0] for i in load_filelist(filelist)]
-        spks = [i[1] for i in load_filelist(filelist)]
+        filelist = load_filelist(filelist)
+        files = [i[0] for i in filelist]
+        spks = [i[1] for i in filelist]
     else:
         files = list_files(root, AUDIO_EXTENSIONS, recursive=True, sort=True)
         spks = [file.parent.name for file in files]
 
     spk_map = {spk: i for i, spk in enumerate(sorted(set(spks)))}
 
-    files = ["|".join([str(file), spk]) for file, spk in zip(files, spks)]
-
     print(f"Found {len(files)} files")
     files = [str(file.relative_to(root)) for file in tqdm(files)]
+    files = ["|".join([file, spk]) for file, spk in zip(files, spks)]
 
     Random(42).shuffle(files)
 
@@ -46,7 +46,7 @@ def main(root, val_ratio, val_count, filelist):
         f.write("\n".join(files[:val_size]))
 
     with open(root / "vq_spk_map.json", "w", encoding="utf-8") as f:
-        json.dump(spk_map, f, indent=4)
+        json.dump(spk_map, f, indent=4, ensure_ascii=False)
 
     print("Done")
 

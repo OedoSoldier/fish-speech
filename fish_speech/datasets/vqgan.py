@@ -28,9 +28,13 @@ class VQGANDataset(Dataset):
         root = filelist.parent
         spk_map = json.load(open(root / "vq_spk_map.json", encoding="utf-8"))
 
-        lines = [line.strip().split("|") for line in lines if line.strip()]
+        lines = [
+            line.strip().split("|")
+            for line in filelist.read_text().splitlines()
+            if line.strip()
+        ]
 
-        self.files = [root / line[0] for line in lines]
+        self.files = [str(root / line[0]) for line in lines]
         self.spks = [spk_map[line[1]] for line in lines]
         self.sample_rate = sample_rate
         self.hop_length = hop_length
@@ -133,15 +137,13 @@ class VQGANDataModule(LightningDataModule):
 
 
 if __name__ == "__main__":
-    dataset = VQGANDataset("data/LibriTTS_R/vq_train_filelist.txt")
-    dataloader = DataLoader(
-        dataset, batch_size=4, shuffle=False, collate_fn=VQGANCollator()
-    )
+    train_dataset = VQGANDataset("data/demo/vq_train_filelist.txt")
+    val_dataset = VQGANDataset("data/demo/vq_val_filelist.txt")
+    datamodule = VQGANDataModule(train_dataset, val_dataset, batch_size=8)
+    train_loader = datamodule.train_dataloader()
 
-    for batch in dataloader:
+    for batch in train_loader:
         print(batch["audios"].shape)
-        print(batch["features"].shape)
         print(batch["audio_lengths"])
-        print(batch["feature_lengths"])
         print(batch["spks"])
-        break
+        # break

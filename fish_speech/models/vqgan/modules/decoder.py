@@ -58,7 +58,7 @@ class Generator(nn.Module):
         self.emb_g = nn.Embedding(n_speakers, gin_channels)
 
         if gin_channels != 0:
-            self.cond = nn.Linear(gin_channels, upsample_initial_channel)
+            self.cond = nn.Conv1d(gin_channels, upsample_initial_channel, 1)
 
         if ckpt_path is not None:
             self.load_state_dict(torch.load(ckpt_path)["generator"], strict=True)
@@ -67,7 +67,7 @@ class Generator(nn.Module):
         g = self.emb_g(sid)
         x = self.conv_pre(x)
         if g is not None:
-            x = x + self.cond(g.mT).mT
+            x = x + self.cond(g.unsqueeze(-1))
 
         for i in range(self.num_upsamples):
             x = F.leaky_relu(x, LRELU_SLOPE)
