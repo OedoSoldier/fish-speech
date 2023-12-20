@@ -162,7 +162,7 @@ class VQGANModel:
         # Sample mels
         decoded_mels = model.decoder(text_features, mel_masks)
         fake_audios = model.generator(
-            decoded_mels, torch.Tensor([sid], device=model.device, dtype=torch.long)
+            decoded_mels, torch.tensor([sid], device=model.device, dtype=torch.long)
         )
         logger.info(
             f"Generated audio of shape {fake_audios.shape}, equivalent to {fake_audios.shape[-1] / model.sampling_rate:.2f} seconds"

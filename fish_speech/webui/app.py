@@ -235,6 +235,8 @@ def inference(
         "sid": spk_map[speaker] if speaker.strip() != "" else None,
     }
 
+    print(payload)
+
     try:
         resp = requests.post(f"{server_url}/v1/models/default/invoke", json=payload)
         resp.raise_for_status()
@@ -254,11 +256,11 @@ def set_spk_map(spk_map_path):
     if spk_map_path is None:
         return {}
 
-    spk_map = json.load(spk_map_path.name)
-    return {"choices": list(spk_map.keys()), "__type__": "update"}, spk_map
+    spk_map = json.load(open(spk_map_path, "r", encoding="utf-8"))
+
+    return {"__type__": "update", "choices": list(spk_map.keys())}, spk_map
 
 
-spk_map = gr.State()
 with gr.Blocks(theme=gr.themes.Base()) as app:
     gr.Markdown(HEADER_MD)
 
@@ -269,6 +271,7 @@ with gr.Blocks(theme=gr.themes.Base()) as app:
         js="() => {const params = new URLSearchParams(window.location.search);if (!params.has('__theme')) {params.set('__theme', 'light');window.location.search = params.toString();}}",
     )
 
+    spk_map = gr.State()
     # Inference
     with gr.Row():
         with gr.Column(scale=3):
@@ -321,10 +324,9 @@ with gr.Blocks(theme=gr.themes.Base()) as app:
                         # )
 
                         spk_map_path = gr.File(label="说话人映射表", type="filepath")
-                        speaker = gr.DropDown(
+                        speaker = gr.Dropdown(
                             label="说话人",
                             choices=[],
-                            value="",
                         )
 
                     with gr.Tab(label="语言优先级"):
