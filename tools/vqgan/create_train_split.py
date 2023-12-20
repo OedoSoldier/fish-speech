@@ -1,5 +1,6 @@
 import math
 import os
+import json
 from pathlib import Path
 from random import Random
 
@@ -17,8 +18,14 @@ from fish_speech.utils.file import AUDIO_EXTENSIONS, list_files, load_filelist
 def main(root, val_ratio, val_count, filelist):
     if filelist:
         files = [i[0] for i in load_filelist(filelist)]
+        spks = [i[1] for i in load_filelist(filelist)]
     else:
         files = list_files(root, AUDIO_EXTENSIONS, recursive=True, sort=True)
+        spks = [file.parent.name for file in files]
+
+    spk_map = {spk: i for i, spk in enumerate(sorted(set(spks)))}
+
+    files = ["|".join([str(file), spk]) for file, spk in zip(files, spks)]
 
     print(f"Found {len(files)} files")
     files = [str(file.relative_to(root)) for file in tqdm(files)]
@@ -37,6 +44,9 @@ def main(root, val_ratio, val_count, filelist):
 
     with open(root / "vq_val_filelist.txt", "w", encoding="utf-8") as f:
         f.write("\n".join(files[:val_size]))
+
+    with open(root / "vq_spk_map.json", "w", encoding="utf-8") as f:
+        json.dump(spk_map, f, indent=4)
 
     print("Done")
 

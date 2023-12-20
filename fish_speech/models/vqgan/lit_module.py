@@ -146,7 +146,11 @@ class VQGAN(L.LightningModule):
     def training_step(self, batch, batch_idx):
         optim_g, optim_d = self.optimizers()
 
-        audios, audio_lengths = batch["audios"], batch["audio_lengths"]
+        audios, audio_lengths, sid = (
+            batch["audios"],
+            batch["audio_lengths"],
+            batch["spks"],
+        )
 
         audios = audios.float()
         audios = audios[:, None, :]
@@ -203,7 +207,7 @@ class VQGAN(L.LightningModule):
             else None
         )
         decoded_mels = self.decoder(text_features, mel_masks, g=speaker_features)
-        fake_audios = self.generator(decoded_mels)
+        fake_audios = self.generator(decoded_mels, sid)
 
         y_hat_mels = self.mel_transform(fake_audios.squeeze(1))
 

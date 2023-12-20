@@ -18,6 +18,7 @@ class Generator(nn.Module):
         upsample_rates,
         upsample_initial_channel,
         upsample_kernel_sizes,
+        n_speakers,
         gin_channels=0,
         ckpt_path=None,
     ):
@@ -54,13 +55,16 @@ class Generator(nn.Module):
         self.conv_post = weight_norm(nn.Conv1d(ch, 1, 7, 1, padding=3))
         self.ups.apply(init_weights)
 
+        self.emb_g = nn.Embedding(n_speakers, gin_channels)
+
         if gin_channels != 0:
             self.cond = nn.Linear(gin_channels, upsample_initial_channel)
 
         if ckpt_path is not None:
             self.load_state_dict(torch.load(ckpt_path)["generator"], strict=True)
 
-    def forward(self, x, g=None):
+    def forward(self, x, sid):
+        g = self.emb_g(sid)
         x = self.conv_pre(x)
         if g is not None:
             x = x + self.cond(g.mT).mT

@@ -88,6 +88,8 @@ model:
     upsample_rates: [8, 8, 2, 2]
     upsample_initial_channel: 512
     upsample_kernel_sizes: [16, 16, 4, 4]
+    n_speakers: 1
+    gin_channels: 512
     # ckpt_path: "checkpoints/hifigan-v1-universal-22050/g_02500000"
 
   discriminator:

@@ -5,6 +5,7 @@ from typing import Optional
 import librosa
 import numpy as np
 import torch
+import json
 from lightning import LightningDataModule
 from torch.utils.data import DataLoader, Dataset
 
@@ -25,12 +26,12 @@ class VQGANDataset(Dataset):
 
         filelist = Path(filelist)
         root = filelist.parent
+        spk_map = json.load(open(root / "vq_spk_map.json", encoding="utf-8"))
 
-        self.files = [
-            root / line.strip()
-            for line in filelist.read_text().splitlines()
-            if line.strip()
-        ]
+        lines = [line.strip().split("|") for line in lines if line.strip()]
+
+        self.files = [root / line[0] for line in lines]
+        self.spks = [spk_map[line[1]] for line in lines]
         self.sample_rate = sample_rate
         self.hop_length = hop_length
         self.slice_frames = slice_frames
@@ -40,6 +41,7 @@ class VQGANDataset(Dataset):
 
     def get_item(self, idx):
         file = self.files[idx]
+        spk = self.spks[idx]
 
         audio, _ = librosa.load(file, sr=self.sample_rate, mono=True)
 
@@ -62,6 +64,7 @@ class VQGANDataset(Dataset):
 
         return {
             "audio": torch.from_numpy(audio),
+            "spk": spk,
         }
 
     def __getitem__(self, idx):
@@ -90,6 +93,7 @@ class VQGANCollator:
         return {
             "audios": torch.stack(audios),
             "audio_lengths": audio_lengths,
+            "spks": torch.tensor([x["spk"] for x in batch]),
         }
 
 
@@ -139,4 +143,5 @@ if __name__ == "__main__":
         print(batch["features"].shape)
         print(batch["audio_lengths"])
         print(batch["feature_lengths"])
+        print(batch["spks"])
         break
