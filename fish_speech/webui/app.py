@@ -6,6 +6,8 @@ import gradio as gr
 import librosa
 import requests
 
+import json
+
 from fish_speech.text import parse_text_to_segments, segments_to_phones
 
 HEADER_MD = """
@@ -201,6 +203,7 @@ def inference(
     repetition_penalty,
     temperature,
     speaker,
+    spk_map,
 ):
     languages = [language0, language1, language2]
     languages = [
@@ -229,6 +232,7 @@ def inference(
         "use_g2p": input_mode == "自动音素",
         "seed": None,
         "speaker": speaker if speaker.strip() != "" else None,
+        "sid": spk_map[speaker] if speaker.strip() != "" else None,
     }
 
     try:
@@ -246,6 +250,15 @@ def inference(
     return (sr, content), None
 
 
+def set_spk_map(spk_map_path):
+    if spk_map_path is None:
+        return {}
+
+    spk_map = json.load(spk_map_path.name)
+    return {"choices": list(spk_map.keys()), "__type__": "update"}, spk_map
+
+
+spk_map = gr.State()
 with gr.Blocks(theme=gr.themes.Base()) as app:
     gr.Markdown(HEADER_MD)
 
@@ -301,10 +314,17 @@ with gr.Blocks(theme=gr.themes.Base()) as app:
                             label="温度", minimum=0, maximum=2, value=0.7, step=0.01
                         )
 
-                        speaker = gr.Textbox(
+                        # speaker = gr.Textbox(
+                        #     label="说话人",
+                        #     placeholder="说话人",
+                        #     lines=1,
+                        # )
+
+                        spk_map_path = gr.File(label="说话人映射表", type="filepath")
+                        speaker = gr.DropDown(
                             label="说话人",
-                            placeholder="说话人",
-                            lines=1,
+                            choices=[],
+                            value="",
                         )
 
                     with gr.Tab(label="语言优先级"):
@@ -382,6 +402,7 @@ with gr.Blocks(theme=gr.themes.Base()) as app:
     language1.change(prepare_text, **kwargs)
     language2.change(prepare_text, **kwargs)
     enable_reference_audio.change(prepare_text, **kwargs)
+    spk_map_path.upload(set_spk_map, [spk_map_path], [speaker, spk_map])
 
     # Submit
     generate.click(
@@ -402,6 +423,7 @@ with gr.Blocks(theme=gr.themes.Base()) as app:
             repetition_penalty,
             temperature,
             speaker,
+            spk_map,
         ],
         [audio, error],
     )

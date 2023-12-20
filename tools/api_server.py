@@ -135,7 +135,7 @@ class VQGANModel:
         logger.info("The vqgan model is removed from memory.")
 
     @torch.no_grad()
-    def sematic_to_wav(self, indices):
+    def sematic_to_wav(self, indices, sid):
         model = self.model
         indices = indices.to(model.device).long()
         indices = indices.unsqueeze(1).unsqueeze(-1)
@@ -161,7 +161,9 @@ class VQGANModel:
 
         # Sample mels
         decoded_mels = model.decoder(text_features, mel_masks)
-        fake_audios = model.generator(decoded_mels)
+        fake_audios = model.generator(
+            decoded_mels, torch.Tensor([sid], device=model.device, dtype=torch.long)
+        )
         logger.info(
             f"Generated audio of shape {fake_audios.shape}, equivalent to {fake_audios.shape[-1] / model.sampling_rate:.2f} seconds"
         )
@@ -331,6 +333,7 @@ class InvokeRequest(BaseModel):
     use_g2p: bool = True
     seed: Optional[int] = None
     speaker: Optional[str] = None
+    sid: Optional[int] = None
 
 
 @routes.http.post("/models/{name}/invoke")
@@ -427,7 +430,7 @@ def api_invoke_model(
     model["lock"].release()
 
     # --------------- llama end ------------
-    audio, sr = vqgan_model_manager.sematic_to_wav(codes)
+    audio, sr = vqgan_model_manager.sematic_to_wav(codes, req.sid)
     # --------------- vqgan end ------------
 
     buffer = io.BytesIO()
